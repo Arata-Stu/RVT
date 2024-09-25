@@ -24,6 +24,7 @@ from pytorch_lightning.callbacks import ModelSummary
 from config.modifier import dynamically_modify_train_config
 from modules.utils.fetch import fetch_data_module, fetch_model_module
 
+from callbacks.custom import get_viz_callback
 
 @hydra.main(config_path='config', config_name='val', version_base='1.2')
 def main(config: DictConfig):
@@ -64,6 +65,8 @@ def main(config: DictConfig):
     # Callbacks and Misc
     # ---------------------
     callbacks = [ModelSummary(max_depth=2)]
+    viz_callback = get_viz_callback(config=config)
+    callbacks.append(viz_callback)
 
     # ---------------------
     # Validation

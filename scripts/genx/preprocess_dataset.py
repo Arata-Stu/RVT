@@ -746,8 +746,15 @@ if __name__ == '__main__':
             if not sequence_dir.is_dir():
                 continue
 
-            npy_file = sequence_dir / f"{sequence_dir.name}_bbox.npy"
-            h5f_path = sequence_dir / f"{sequence_dir.name}_td.dat.h5"
+            if dataset == "gen1":
+                npy_file = sequence_dir / f"{sequence_dir.name}_bbox.npy"
+                h5f_path = sequence_dir / f"{sequence_dir.name}_td.dat.h5"
+            elif dataset == "gen4":
+                npy_file = sequence_dir / f"{sequence_dir.name}_bbox.npy"
+                h5f_path = sequence_dir / f"{sequence_dir.name}_td.h5"
+            else:
+                raise ValueError(f"Unsupported dataset type: {dataset}")
+
             if not npy_file.exists() or not h5f_path.exists():
                 print(f"Missing required files in {sequence_dir}")
                 continue
@@ -772,6 +779,7 @@ if __name__ == '__main__':
                 DataKeys.SplitType: split_name_2_type[split],
             }
             seq_data_list.append(sequence_data)
+
 
 
     ev_repr_num_events = None

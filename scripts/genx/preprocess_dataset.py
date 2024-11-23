@@ -737,21 +737,26 @@ if __name__ == '__main__':
     assert test_path.exists(), f'{test_path=}'
 
     seq_data_list = list()
-    for split in [train_path, val_path, test_path]:
-        split_out_dir = target_dir / split.name
+    for split in ['train', 'val', 'test']:
+        split_dir = dataset_input_path / split
+        split_out_dir = target_dir / split
         os.makedirs(split_out_dir, exist_ok=True)
-        for npy_file in split.iterdir():
-            if npy_file.suffix != '.npy':
-                continue
-            h5f_path = npy_file.parent / (
-                    npy_file.stem.split('bbox')[0] + f"td{'.dat' if dataset == 'gen1' else ''}.h5")
-            assert h5f_path.exists(), f'{h5f_path=}'
 
-            dir_name = npy_file.stem.split('_bbox')[0]
+        for sequence_dir in split_dir.iterdir():
+            if not sequence_dir.is_dir():
+                continue
+
+            npy_file = sequence_dir / f"{sequence_dir.name}_bbox.npy"
+            h5f_path = sequence_dir / f"{sequence_dir.name}_td.dat.h5"
+            if not npy_file.exists() or not h5f_path.exists():
+                print(f"Missing required files in {sequence_dir}")
+                continue
+
+            dir_name = sequence_dir.name
             if dir_name in dirs_to_ignore[dataset]:
                 continue
-            out_seq_path = split_out_dir / dir_name
 
+            out_seq_path = split_out_dir / dir_name
             out_labels_path = out_seq_path / 'labels_v2'
             os.makedirs(out_labels_path, exist_ok=True)
 
@@ -764,9 +769,10 @@ if __name__ == '__main__':
                 DataKeys.InH5: h5f_path,
                 DataKeys.OutLabelDir: out_labels_path,
                 DataKeys.OutEvReprDir: out_ev_repr_path,
-                DataKeys.SplitType: split_name_2_type[split.name],
+                DataKeys.SplitType: split_name_2_type[split],
             }
             seq_data_list.append(sequence_data)
+
 
     ev_repr_num_events = None
     ev_repr_delta_ts_ms = None

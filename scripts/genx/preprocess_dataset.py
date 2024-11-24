@@ -673,7 +673,9 @@ adding Event Frae Factory
 class EventFrameFactory(EventRepresentationFactory):
     @property
     def name(self) -> str:
-        return "event_frame"
+        extraction = self.config.event_window_extraction
+        return f'{self.config.name}_{aggregation_2_string[extraction.method]}={extraction.ev_repr_delta_ts_ms}'
+
 
     def create(self, height: int, width: int) -> EventFrame:
         return EventFrame(height=height, width=width)
@@ -683,7 +685,7 @@ class StackedHistogramFactory(EventRepresentationFactory):
     @property
     def name(self) -> str:
         extraction = self.config.event_window_extraction
-        return f'{self.config.name}_{aggregation_2_string[extraction.method]}={extraction.value}_nbins={self.config.nbins}'
+        return f'{self.config.name}_{aggregation_2_string[extraction.method]}={extraction.ev_repr_delta_ts_ms}_nbins={self.config.nbins}'
 
     def create(self, height: int, width: int) -> StackedHistogram:
         return StackedHistogram(bins=self.config.nbins,
@@ -698,7 +700,7 @@ class MixedDensityStackFactory(EventRepresentationFactory):
     def name(self) -> str:
         extraction = self.config.event_window_extraction
         cutoff_str = f'_cutoff={self.config.count_cutoff}' if self.config.count_cutoff is not None else ''
-        return f'{self.config.name}_{aggregation_2_string[extraction.method]}={extraction.value}_nbins={self.config.nbins}{cutoff_str}'
+        return f'{self.config.name}_{aggregation_2_string[extraction.method]}={extraction.ev_repr_delta_ts_ms}_nbins={self.config.nbins}{cutoff_str}'
 
     def create(self, height: int, width: int) -> MixedDensityEventStack:
         return MixedDensityEventStack(bins=self.config.nbins,

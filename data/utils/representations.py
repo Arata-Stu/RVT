@@ -60,7 +60,7 @@ class EventFrame(RepresentationBase):
 
     @staticmethod
     def get_numpy_dtype() -> np.dtype:
-        return np.uint8
+        return np.dtype('uint8')
 
     @staticmethod
     def get_torch_dtype() -> th.dtype:

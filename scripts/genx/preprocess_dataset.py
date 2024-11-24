@@ -1,3 +1,7 @@
+"""
+adding Event Frame Factory
+"""
+
 import os
 
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -32,7 +36,10 @@ import torch
 from tqdm import tqdm
 
 from utils.preprocessing import _blosc_opts
-from data.utils.representations import MixedDensityEventStack, StackedHistogram, RepresentationBase
+"""
+adding Event Frame 
+"""
+from data.utils.representations import MixedDensityEventStack, StackedHistogram, RepresentationBase, EventFrame
 
 
 class DataKeys(Enum):
@@ -608,6 +615,15 @@ class EventWindowExtractionConf:
     method: AggregationType = MISSING
     value: int = MISSING
 
+"""
+adding Event Frame Conf
+"""
+@dataclass
+class EventFrameConf:
+    name: str = MISSING  # 必須: イベントフレームの名前
+    background_color: int = 114  # 背景色（0〜255のグレースケール値）
+    event_window_extraction: EventWindowExtractionConf = field(default_factory=EventWindowExtractionConf)
+
 
 @dataclass
 class StackedHistogramConf:
@@ -626,7 +642,11 @@ class MixedDensityEventStackConf:
     event_window_extraction: EventWindowExtractionConf = field(default_factory=EventWindowExtractionConf)
 
 
+"""
+adding Event Frame Conf
+"""
 name_2_structured_config = {
+    'event_frame': EventFrameConf,
     'stacked_histogram': StackedHistogramConf,
     'mixeddensity_stack': MixedDensityEventStackConf,
 }
@@ -644,6 +664,18 @@ class EventRepresentationFactory(ABC):
     @abstractmethod
     def create(self, height: int, width: int) -> Any:
         ...
+
+"""
+adding Event Frae Factory
+"""
+
+class EventFrameFactory(EventRepresentationFactory):
+    @property
+    def name(self) -> str:
+        return "event_frame"
+
+    def create(self, height: int, width: int) -> EventFrame:
+        return EventFrame(height=height, width=width)
 
 
 class StackedHistogramFactory(EventRepresentationFactory):
@@ -675,6 +707,7 @@ class MixedDensityStackFactory(EventRepresentationFactory):
 
 
 name_2_ev_repr_factory = {
+    'event_frame': EventFrameFactory,
     'stacked_histogram': StackedHistogramFactory,
     'mixeddensity_stack': MixedDensityStackFactory,
 }
@@ -784,12 +817,20 @@ if __name__ == '__main__':
 
     ev_repr_num_events = None
     ev_repr_delta_ts_ms = None
+    """
+    modification : define ts_step_ev_repr_ms from config
+    """
     if config.event_window_extraction.method == AggregationType.COUNT:
         ev_repr_num_events = config.event_window_extraction.value
+        ## イベント表現を生成する間隔
+        ts_step_ev_repr_ms = 50  # Could be an argument of the script.
     else:
         assert config.event_window_extraction.method == AggregationType.DURATION
-        ev_repr_delta_ts_ms = config.event_window_extraction.value
-    ts_step_ev_repr_ms = 50  # Could be an argument of the script.
+        ## イベント表現を生成する時に使われるイベントの時間 例: 過去100msのイベントを利用してイベントヒストグラムを生成
+        ev_repr_delta_ts_ms = config.event_window_extraction.ev_repr_delta_ts_ms
+        ts_step_ev_repr_ms = config.event_window_extraction.ts_step_ev_repr_ms
+
+    
 
     if num_processes > 1:
         chunksize = 1

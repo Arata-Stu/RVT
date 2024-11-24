@@ -1,3 +1,7 @@
+"""
+adding a new representation: Event Frame
+"""
+
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple
 
@@ -32,6 +36,79 @@ class RepresentationBase(ABC):
     @staticmethod
     def _is_int_tensor(tensor: th.Tensor) -> bool:
         return not th.is_floating_point(tensor) and not th.is_complex(tensor)
+
+
+## adding Event Frame representation
+class EventFrame(RepresentationBase):
+    def __init__(self, height: int, width: int, downsample: bool = False):
+        """
+        Event Frame representation that maps ON and OFF events to a 2D RGB frame.
+        :param height: Height of the event frame.
+        :param width: Width of the event frame.
+        :param downsample: Whether to downsample the frame by half.
+        """
+        super().__init__()
+        self.height = height
+        self.width = width
+        self.downsample = downsample
+
+    def get_shape(self) -> Tuple[int, int, int]:
+        # RGB frame shape: 3 channels
+        if self.downsample:
+            return (3, self.height // 2, self.width // 2)
+        return (3, self.height, self.width)
+
+    @staticmethod
+    def get_numpy_dtype() -> np.dtype:
+        return np.uint8
+
+    @staticmethod
+    def get_torch_dtype() -> th.dtype:
+        return th.uint8
+
+    def construct(self, x: th.Tensor, y: th.Tensor, pol: th.Tensor, time: th.Tensor) -> th.Tensor:
+        """
+        Constructs an event frame with ON events in red and OFF events in blue.
+        :param x: x-coordinates of events.
+        :param y: y-coordinates of events.
+        :param pol: polarity of events (+1 for ON, -1 for OFF).
+        :param time: timestamps of events (not used here).
+        :return: RGB event frame as a Torch tensor.
+        """
+        device = x.device
+        assert y.device == pol.device == time.device == device
+
+        # Initialize a gray frame (114, 114, 114)
+        frame = th.full((3, self.height, self.width), fill_value=114, dtype=th.uint8, device=device)
+
+        # Clip x and y coordinates to fit within the frame dimensions
+        x_clipped = th.clamp(x, min=0, max=self.width - 1)
+        y_clipped = th.clamp(y, min=0, max=self.height - 1)
+
+        # ON events (pol == 1) → Red channel
+        on_mask = (pol == 1)
+        frame[0, y_clipped[on_mask], x_clipped[on_mask]] = 255  # Red
+        frame[1, y_clipped[on_mask], x_clipped[on_mask]] = 0
+        frame[2, y_clipped[on_mask], x_clipped[on_mask]] = 0
+
+        # OFF events (pol == -1) → Blue channel
+        off_mask = (pol == -1)
+        frame[0, y_clipped[off_mask], x_clipped[off_mask]] = 0
+        frame[1, y_clipped[off_mask], x_clipped[off_mask]] = 0
+        frame[2, y_clipped[off_mask], x_clipped[off_mask]] = 255  # Blue
+
+        # Downsample the frame if required
+        if self.downsample:
+            frame = th.nn.functional.interpolate(
+                frame.unsqueeze(0).float(),
+                size=(self.height // 2, self.width // 2),
+                mode="bilinear",
+                align_corners=False
+            ).squeeze(0).to(th.uint8)
+
+        return frame
+
+
 
 
 class StackedHistogram(RepresentationBase):

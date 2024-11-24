@@ -613,7 +613,8 @@ class FilterConf:
 @dataclass
 class EventWindowExtractionConf:
     method: AggregationType = MISSING
-    value: int = MISSING
+    ev_repr_delta_ts_ms: int = MISSING
+    ts_step_ev_repr_ms: int = MISSING
 
 """
 adding Event Frame Conf

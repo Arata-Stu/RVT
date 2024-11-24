@@ -26,9 +26,11 @@ class YoloXDetector(th.nn.Module):
         self.backbone = build_recurrent_backbone(backbone_cfg)
 
         in_channels = self.backbone.get_stage_dims(fpn_cfg.in_stages)
+        print('inchannels:', in_channels)
         self.fpn = build_yolox_fpn(fpn_cfg, in_channels=in_channels)
-
+        
         strides = self.backbone.get_strides(fpn_cfg.in_stages)
+        print('strides:', strides)
         self.yolox_head = build_yolox_head(head_cfg, in_channels=in_channels, strides=strides)
 
     def forward_backbone(self,

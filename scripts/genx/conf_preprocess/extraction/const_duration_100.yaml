@@ -3,7 +3,7 @@ method: DURATION
 # value is in milliseconds!
 
 # 何秒間のデータを使ってイベント表現を生成するか
-ev_repr_delta_ts_ms: 50
+ev_repr_delta_ts_ms: 100
 
 ## 何秒おきにイベント表現を生成するか
 ts_step_ev_repr_ms: 100

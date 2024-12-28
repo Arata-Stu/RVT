@@ -218,8 +218,8 @@ class ModuleYOLOX(pl.LightningModule):
             else:
                 assert self.mode_2_hw[mode] == ev_tensors.shape[-2:]
 
-            backbone_features, states = self.mdl.forward_backbone(x=ev_tensors)
-            prev_states = states
+            backbone_features = self.mdl.forward_backbone(x=ev_tensors)
+            
 
             if collect_predictions:
                 current_labels, valid_batch_indices = sparse_obj_labels[tidx].get_valid_labels_and_batch_indices()

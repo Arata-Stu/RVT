@@ -11,7 +11,7 @@ except ImportError:
 from .build import build_yolox_fpn, build_yolox_head, build_yolox_backbone
 from utils.timers import TimerDummy as CudaTimer
 
-from data.utils.types import BackboneFeatures, LstmStates
+from data.utils.types import BackboneFeatures
 
 
 class YOLOX(th.nn.Module):
@@ -33,11 +33,10 @@ class YOLOX(th.nn.Module):
         self.yolox_head = build_yolox_head(head_cfg, in_channels=in_channels, strides=strides)
 
     def forward_backbone(self,
-                         x: th.Tensor,) -> \
-            Tuple[BackboneFeatures, LstmStates]:
+                         x: th.Tensor,):
         with CudaTimer(device=x.device, timer_name="Backbone"):
-            backbone_features, states = self.backbone(x)
-        return backbone_features, states
+            backbone_features = self.backbone(x)
+        return backbone_features
 
     def forward_detect(self,
                        backbone_features: BackboneFeatures,
@@ -60,7 +59,7 @@ class YOLOX(th.nn.Module):
                 x: th.Tensor,
                 retrieve_detections: bool = True,
                 targets: Optional[th.Tensor] = None) -> \
-            Tuple[Union[th.Tensor, None], Union[Dict[str, th.Tensor], None], LstmStates]:
+            Tuple[Union[th.Tensor, None], Union[Dict[str, th.Tensor], None]]:
         backbone_features = self.forward_backbone(x)
         outputs, losses = None, None
         if not retrieve_detections:

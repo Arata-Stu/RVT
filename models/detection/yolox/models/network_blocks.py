@@ -140,3 +140,70 @@ class CSPLayer(nn.Module):
         x_1 = self.m(x_1)
         x = torch.cat((x_1, x_2), dim=1)
         return self.conv3(x)
+    
+class ResLayer(nn.Module):
+    "Residual layer with `in_channels` inputs."
+
+    def __init__(self, in_channels: int):
+        super().__init__()
+        mid_channels = in_channels // 2
+        self.layer1 = BaseConv(
+            in_channels, mid_channels, ksize=1, stride=1, act="lrelu"
+        )
+        self.layer2 = BaseConv(
+            mid_channels, in_channels, ksize=3, stride=1, act="lrelu"
+        )
+
+    def forward(self, x):
+        out = self.layer2(self.layer1(x))
+        return x + out
+
+
+class SPPBottleneck(nn.Module):
+    """Spatial pyramid pooling layer used in YOLOv3-SPP"""
+
+    def __init__(
+        self, in_channels, out_channels, kernel_sizes=(5, 9, 13), activation="silu"
+    ):
+        super().__init__()
+        hidden_channels = in_channels // 2
+        self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=activation)
+        self.m = nn.ModuleList(
+            [
+                nn.MaxPool2d(kernel_size=ks, stride=1, padding=ks // 2)
+                for ks in kernel_sizes
+            ]
+        )
+        conv2_channels = hidden_channels * (len(kernel_sizes) + 1)
+        self.conv2 = BaseConv(conv2_channels, out_channels, 1, stride=1, act=activation)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = torch.cat([x] + [m(x) for m in self.m], dim=1)
+        x = self.conv2(x)
+        return x
+
+    
+class Focus(nn.Module):
+    """Focus width and height information into channel space."""
+
+    def __init__(self, in_channels, out_channels, ksize=1, stride=1, act="silu"):
+        super().__init__()
+        self.conv = BaseConv(in_channels * 4, out_channels, ksize, stride, act=act)
+
+    def forward(self, x):
+        # shape of x (b,c,w,h) -> y(b,4c,w/2,h/2)
+        patch_top_left = x[..., ::2, ::2]
+        patch_top_right = x[..., ::2, 1::2]
+        patch_bot_left = x[..., 1::2, ::2]
+        patch_bot_right = x[..., 1::2, 1::2]
+        x = torch.cat(
+            (
+                patch_top_left,
+                patch_bot_left,
+                patch_top_right,
+                patch_bot_right,
+            ),
+            dim=1,
+        )
+        return self.conv(x)

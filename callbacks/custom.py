@@ -12,6 +12,9 @@ def get_ckpt_callback(config: DictConfig) -> ModelCheckpoint:
     if model_name == 'rnndet':
         metric = 'AP'
         mode = 'max'
+    elif model_name == 'YOLOX':
+        metric = 'AP'
+        mode = 'max'
     else:
         raise NotImplementedError
     ckpt_callback_monitor = prefix + '/' + metric

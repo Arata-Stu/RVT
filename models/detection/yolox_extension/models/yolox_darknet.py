@@ -16,6 +16,7 @@ class CSPDarknet(nn.Module):
         out_features=("dark3", "dark4", "dark5"),
         depthwise=False,
         act="silu",
+        in_res_hw = None
     ):
         super().__init__()
         assert out_features, "please provide output features of Darknet"

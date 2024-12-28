@@ -37,6 +37,3 @@ dataset:
   sequence_length: 1
   downsample_by_factor_2: False
   only_load_end_labels: False
-model:
-  backbone:
-    partition_split_32: 1

@@ -3,12 +3,15 @@ from omegaconf import DictConfig
 
 from modules.data.genx import DataModule as genx_data_module
 from modules.detection import Module as rnn_det_module
+from modules.detection_yolox import ModuleYOLOX as yolox_module
 
 
 def fetch_model_module(config: DictConfig) -> pl.LightningModule:
     model_str = config.model.name
     if model_str == 'rnndet':
         return rnn_det_module(config)
+    elif model_str == 'YOLOX':
+        return yolox_module(config)
     raise NotImplementedError
 
 

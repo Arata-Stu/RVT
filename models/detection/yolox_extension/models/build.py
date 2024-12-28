@@ -32,7 +32,7 @@ def build_yolox_backbone(backbone_cfg: DictConfig):
     backbone_cfg_dict = OmegaConf.to_container(backbone_cfg, resolve=True, throw_on_missing=True)
     backbone_name = backbone_cfg_dict.pop('name')
     if backbone_name in {'Darknet', 'darknet'}:
-        compile_cfg = backbone_cfg_dict.pop('compile', None)
-        backbone_cfg_dict.update({"compile_cfg": compile_cfg})
+        # compile_cfg = backbone_cfg_dict.pop('compile', None)
+        # backbone_cfg_dict.update({"compile_cfg": compile_cfg})
         return CSPDarknet(**backbone_cfg_dict)
     raise NotImplementedError

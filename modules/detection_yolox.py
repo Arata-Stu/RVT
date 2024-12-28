@@ -20,7 +20,7 @@ from .utils.detection import BackboneFeatureSelector, EventReprSelector, RNNStat
     merge_mixed_batches
 
 
-class Module(pl.LightningModule):
+class ModuleYOLOX(pl.LightningModule):
     def __init__(self, full_config: DictConfig):
         super().__init__()
 

@@ -8,14 +8,13 @@ try:
 except ImportError:
     th_compile = None
 
-from ...recurrent_backbone import build_recurrent_backbone
-from .build import build_yolox_fpn, build_yolox_head
+from .build import build_yolox_fpn, build_yolox_head, build_yolox_backbone
 from utils.timers import TimerDummy as CudaTimer
 
 from data.utils.types import BackboneFeatures, LstmStates
 
 
-class YoloX(th.nn.Module):
+class YOLOX(th.nn.Module):
     def __init__(self,
                  model_cfg: DictConfig):
         super().__init__()
@@ -23,7 +22,7 @@ class YoloX(th.nn.Module):
         fpn_cfg = model_cfg.fpn
         head_cfg = model_cfg.head
 
-        self.backbone = build_recurrent_backbone(backbone_cfg)
+        self.backbone = build_yolox_backbone(backbone_cfg)
 
         in_channels = self.backbone.get_stage_dims(fpn_cfg.in_stages)
         print('inchannels:', in_channels)
@@ -34,12 +33,10 @@ class YoloX(th.nn.Module):
         self.yolox_head = build_yolox_head(head_cfg, in_channels=in_channels, strides=strides)
 
     def forward_backbone(self,
-                         x: th.Tensor,
-                         previous_states: Optional[LstmStates] = None,
-                         token_mask: Optional[th.Tensor] = None) -> \
+                         x: th.Tensor,) -> \
             Tuple[BackboneFeatures, LstmStates]:
         with CudaTimer(device=x.device, timer_name="Backbone"):
-            backbone_features, states = self.backbone(x, previous_states, token_mask)
+            backbone_features, states = self.backbone(x)
         return backbone_features, states
 
     def forward_detect(self,
@@ -61,14 +58,13 @@ class YoloX(th.nn.Module):
 
     def forward(self,
                 x: th.Tensor,
-                previous_states: Optional[LstmStates] = None,
                 retrieve_detections: bool = True,
                 targets: Optional[th.Tensor] = None) -> \
             Tuple[Union[th.Tensor, None], Union[Dict[str, th.Tensor], None], LstmStates]:
-        backbone_features, states = self.forward_backbone(x, previous_states)
+        backbone_features = self.forward_backbone(x)
         outputs, losses = None, None
         if not retrieve_detections:
             assert targets is None
-            return outputs, losses, states
+            return outputs, losses
         outputs, losses = self.forward_detect(backbone_features=backbone_features, targets=targets)
-        return outputs, losses, states
+        return outputs, losses

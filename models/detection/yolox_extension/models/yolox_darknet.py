@@ -10,8 +10,8 @@ from ...yolox.models.network_blocks import BaseConv, CSPLayer, DWConv, Focus, Re
 class CSPDarknet(nn.Module):
     def __init__(
         self,
-        dep_mul,
-        wid_mul,
+        depth,
+        width,
         input_dim=3,
         out_features=("dark3", "dark4", "dark5"),
         depthwise=False,
@@ -23,8 +23,8 @@ class CSPDarknet(nn.Module):
         Conv = DWConv if depthwise else BaseConv
 
         # Initialize base_channels and base_depth
-        base_channels = int(wid_mul * 64)
-        base_depth = max(round(dep_mul * 3), 1)
+        base_channels = int(width * 64)
+        base_depth = max(round(depth * 3), 1)
 
         # Initialize dictionaries to store input and output dimensions of each block
         self.input_dims = {}

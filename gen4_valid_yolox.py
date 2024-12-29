@@ -17,7 +17,7 @@ for dt in event_frame_dts:
         python3 validation.py dataset=gen4 dataset.path={data_dir} checkpoint="'{ckpt_path}'" \
         +experiment/gen4="{mdl_cfg}.yaml" hardware.gpus={gpu_ids} \
         batch_size.eval={batch_size_per_gpu} use_test_set=1 dataset.sequence_length=1 \
-        dataset.ev_repr_name="'event_frame_dt={dt}'" model.backbone.input_channels={input_channels} model.postprocess.confidence_threshold=0.001
+        dataset.ev_repr_name="'event_frame_dt={dt}'"  model.postprocess.confidence_threshold=0.001
         """
 
 

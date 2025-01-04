@@ -1,0 +1,16 @@
+batch_size:
+  train: 1
+  eval: 1
+
+hardware:
+  num_workers:
+    train: 1
+    eval: 1
+
+dataset:
+  name: "gen1"
+  path: "notebook/data/gen1"
+  train:
+    sampling: random
+  eval:
+    sampling: random

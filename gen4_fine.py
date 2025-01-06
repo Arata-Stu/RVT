@@ -19,7 +19,7 @@ for dt in event_frame_dts:
     wandb.group_name=gen4 +experiment/gen4={mdl_cfg}.yaml hardware.gpus={gpu_ids} \
     batch_size.train={batch_size_per_gpu} batch_size.eval={batch_size_per_gpu} \
     hardware.num_workers.train={train_workers_per_gpu} hardware.num_workers.eval={eval_workers_per_gpu} \
-    dataset.ev_repr_name="'event_frame_dt={dt}'" model.backbone.input_channels={input_channels} \
+    dataset.ev_repr_name="'event_frame_dt={dt}'" model.backbone.input_channels={input_channels} dataset.train.sampling=random\
     training.max_steps=200000 wandb.resume_only_weights=True wandb.artifact_name="{artifact_name}" \
     """
     print(f"Running command for gen4 event_frame_dt={dt}")

@@ -1,7 +1,7 @@
 import os
 
 # 固定パラメータ
-gpu_ids = 0
+gpu_ids = [0]
 batch_size_per_gpu = 5
 train_workers_per_gpu = 6
 eval_workers_per_gpu = 2
@@ -10,7 +10,7 @@ data_dir = "/home/ubuntu/gen4/pre_gen4"  # DATA_DIRの値を指定
 
 sampling = "random"
 input_channels = 3  # 入力チャンネル数
-event_frame_dts = [5, 10, 20, 50, 100]  # 必要に応じて値を追加
+event_frame_dts = [50]  # 必要に応じて値を追加
 
 gpu_ids_str = ",".join(map(str, gpu_ids)) 
 

@@ -6,7 +6,7 @@ batch_size_per_gpu = 16
 train_workers_per_gpu = 8
 eval_workers_per_gpu = 4
 mdl_cfg = "yolox"  # MDL_CFGの値を指定
-data_dir = "/home/ubuntu/gen1/pre_gen1"  # DATA_DIRの値を指定
+data_dir = "./datasets/pre_gen1"  # DATA_DIRの値を指定
 
 input_channels = 3  # 入力チャンネル数
 event_frame_dts = [5, 10, 20, 50, 100]  # 必要に応じて値を追加

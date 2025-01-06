@@ -4,7 +4,7 @@ import os
 gpu_ids = 0
 batch_size_per_gpu = 4
 mdl_cfg = "yolox"  # MDL_CFGの値を指定
-data_dir = "/home/metis/Arata_repos/pre_gen4"  # DATA_DIRの値を指定
+base_data_dir = "./datasets/pre_gen4"  # DATA_DIRの値を指定
 ckpt_path = ".ckpt"  # CKPT_PATHの値を指定
 
 input_channels = 3  # 入力チャンネル数
@@ -13,6 +13,7 @@ event_frame_dts = [50]  # 必要に応じて値を追加
 
 # ループ処理
 for dt in event_frame_dts:
+    data_dir = f"{base_data_dir}_{dt}"
     command = f"""
         python3 validation.py dataset=gen4 dataset.path={data_dir} checkpoint="'{ckpt_path}'" \
         +experiment/gen4="{mdl_cfg}.yaml" hardware.gpus={gpu_ids} \

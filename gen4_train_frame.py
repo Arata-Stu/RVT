@@ -2,13 +2,13 @@ import os
 
 # 固定パラメータ
 gpu_ids = [0]
-batch_size_per_gpu = 5
-train_workers_per_gpu = 6
-eval_workers_per_gpu = 2
+batch_size_per_gpu = 8
+train_workers_per_gpu = 12
+eval_workers_per_gpu = 4
 mdl_cfg = "tiny"  # MDL_CFGの値を指定
-data_dir = "/home/ubuntu/gen4/pre_gen4"  # DATA_DIRの値を指定
+base_data_dir = "./datasets/pre_gen4"  # DATA_DIRの値を指定
 
-sampling = "random"
+sampling = "mixed"
 input_channels = 3  # 入力チャンネル数
 event_frame_dts = [50]  # 必要に応じて値を追加
 
@@ -17,6 +17,7 @@ gpu_ids_str = ",".join(map(str, gpu_ids))
 
 # ループ処理
 for dt in event_frame_dts:
+    data_dir = f"{base_data_dir}_{dt}"
     command = f"""
     python3 train.py model=rnndet dataset=gen4 dataset.path={data_dir} wandb.project_name=part2_RVT_gen4_frame{dt} \
     wandb.group_name=1mpx +experiment/gen4={mdl_cfg}.yaml hardware.gpus="[ {gpu_ids_str} ]" \

@@ -8,9 +8,12 @@ hardware:
     eval: 1
 
 dataset:
-  name: "gen1"
-  path: "notebook/data/gen1"
+  name: "gen4"
+  downsample_by_factor_2: true
+  path: "/home/arata22/dataset/pre_gen4/pre_gen4_20"
   train:
-    sampling: random
+    sampling: stream
   eval:
-    sampling: random
+    sampling: stream
+  ev_repr_name: "event_frame_dt=20"
+  sequence_length: 5

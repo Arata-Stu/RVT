@@ -16,7 +16,7 @@ event_frame_dts = [5]  # 必要に応じて値を追加
 # ループ処理
 for dt in event_frame_dts:
     command = f"""
-    python3 train.py model=rnndet dataset=gen1 dataset.path={data_dir} wandb.project_name=RVT_gen1_frame_{dt} \
+    python3 train.py model=rnndet dataset=gen1 dataset.path={data_dir} wandb.project_name=part2_RVT_gen1_frame_{dt} \
     wandb.group_name=gen1 +experiment/gen1={mdl_cfg}.yaml hardware.gpus={gpu_ids} \
     batch_size.train={batch_size_per_gpu} batch_size.eval={batch_size_per_gpu} \
     hardware.num_workers.train={train_workers_per_gpu} hardware.num_workers.eval={eval_workers_per_gpu} \

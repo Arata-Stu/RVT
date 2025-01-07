@@ -19,6 +19,7 @@ dataset:
   sequence_length: 5
 
 model:
+  name: rnndet
   backbone:
     name: MaxViTRNN
     compile:

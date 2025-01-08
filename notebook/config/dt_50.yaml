@@ -16,7 +16,7 @@ dataset:
   eval:
     sampling: stream
   ev_repr_name: "event_frame_dt=50"
-  sequence_length: 10
+  sequence_length: 1
 
 ckpt_path: "./ckpt/gen4_dt_50.ckpt"
 model:

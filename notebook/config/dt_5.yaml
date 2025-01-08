@@ -10,13 +10,13 @@ hardware:
 dataset:
   name: "gen4"
   downsample_by_factor_2: true
-  path: "../datasets/pre_gen4_50"
+  path: "../datasets/pre_gen4_5"
   train:
     sampling: stream
   eval:
     sampling: stream
-  ev_repr_name: "event_frame_dt=50"
-  sequence_length: 10
+  ev_repr_name: "event_frame_dt=5"
+  sequence_length: 1
 
 model:
   name: rnndet

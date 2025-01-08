@@ -10,14 +10,15 @@ hardware:
 dataset:
   name: "gen4"
   downsample_by_factor_2: true
-  path: "../datasets/pre_gen4_100"
+  path: "../datasets/pre_gen4_50"
   train:
     sampling: stream
   eval:
     sampling: stream
-  ev_repr_name: "event_frame_dt=100"
+  ev_repr_name: "event_frame_dt=50"
   sequence_length: 10
 
+ckpt_path: "./ckpt/gen4_dt_50.ckpt"
 model:
   name: rnndet
   backbone:

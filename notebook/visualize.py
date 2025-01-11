@@ -32,7 +32,17 @@ class VideoWriter:
         if self.video_writer is None:
             self.create_video_writer(frame_shape=(ev_tensor.shape[1], ev_tensor.shape[0]))
 
-        ev_tensor = cv2.cvtColor(ev_tensor, cv2.COLOR_RGB2BGR).astype(np.uint8)
+        # 指定色を置換する
+        # (255, 0, 0) を (255, 255, 255) に
+        red_mask = (ev_tensor[:, :, 0] == 255) & (ev_tensor[:, :, 1] == 0) & (ev_tensor[:, :, 2] == 0)
+        ev_tensor[red_mask] = [255, 255, 255]
+
+        # (0, 0, 255) を (0, 0, 0) に
+        blue_mask = (ev_tensor[:, :, 0] == 0) & (ev_tensor[:, :, 1] == 0) & (ev_tensor[:, :, 2] == 255)
+        ev_tensor[blue_mask] = [0, 0, 0]
+
+        # RGB -> BGR変換
+        ev_tensor = cv2.cvtColor(ev_tensor, cv2.COLOR_RGB2BGR)
 
         if self.mode in [2, 4] and labels_yolox is not None:
             for cls, cx, cy, w, h in labels_yolox[0]:
@@ -53,12 +63,12 @@ class VideoWriter:
                 y1 = max(0, int(y1))
                 x2 = min(ev_tensor.shape[1] - 1, int(x2))
                 y2 = min(ev_tensor.shape[0] - 1, int(y2))
-                color = (255, 255, 0)  # Yello RGB
+                color = (255, 255, 0)  # Yellow
                 cv2.rectangle(ev_tensor, (x1, y1), (x2, y2), color, 2)
                 label = f"{class_id:.2f}"
                 cv2.putText(ev_tensor, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
-        self.video_writer.write(cv2.cvtColor(ev_tensor, cv2.COLOR_RGB2BGR))
+        self.video_writer.write(ev_tensor)
 
     def run(self, config: DictConfig, max_sequences: int = 1):
         # デバイスの設定

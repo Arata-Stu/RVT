@@ -57,7 +57,8 @@ class VideoWriter:
                 label = f"{cls}"
                 cv2.putText(ev_tensor, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
-        if self.mode in [3, 4] and predictions is not None:
+        if self.mode in [3, 4] and predictions is not None and predictions[0] is not None:
+            
             for x1, y1, x2, y2, obj_conf, class_conf, class_id in predictions[0]:
                 x1 = max(0, int(x1))
                 y1 = max(0, int(y1))
@@ -86,6 +87,7 @@ class VideoWriter:
 
             ckpt_path = config.ckpt_path
             if ckpt_path != "":
+                print(f"Loading checkpoint from {ckpt_path}, device: {device}")
                 ckpt = torch.load(ckpt_path, map_location=device)  # デバイスに合わせてチェックポイントをロード
                 model.load_state_dict(ckpt['state_dict'])
 
@@ -93,8 +95,10 @@ class VideoWriter:
         rnn_state = RNNStates()
         if config.dataset.name == "gen1":
             size = (256, 320)
+            num_classes = 2
         elif config.dataset.name == "gen4":
             size = (384, 640)
+            num_classes = 3
         else:
             raise ValueError(f"Unknown dataset name: {config.dataset.name}")
 
@@ -135,6 +139,6 @@ class VideoWriter:
                     rnn_state.save_states_and_detach(worker_id=0, states=prev_states)
 
                     predictions, _ = model.mdl.forward_detect(backbone_features=backbone_features)
-                    pred_processed = postprocess(prediction=predictions, num_classes=3, conf_thre=0.1, nms_thre=0.45)
+                    pred_processed = postprocess(prediction=predictions, num_classes=num_classes, conf_thre=0.1, nms_thre=0.45)
 
                 self.visualize(ev_tensors, labels_yolox, pred_processed)

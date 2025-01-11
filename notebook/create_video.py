@@ -7,12 +7,12 @@ from visualize import VideoWriter
 
 from config.modifier import dynamically_modify_train_config
 
-def main(yaml_path: str, output_path: str, mode: int = 0, fps: int=10, max_sequence_length: int=1):
+def main(yaml_path: str, output_path: str, mode: int = 0, fps: int=10, num_sequence: int=1):
     video_writer = VideoWriter(output_path, fps, mode=mode)
 
     config = OmegaConf.load(yaml_path)
     dynamically_modify_train_config(config)
-    video_writer.run(config, max_sequence_length)
+    video_writer.run(config, num_sequence)
     video_writer.video_writer.release()
 
 
@@ -25,4 +25,4 @@ if __name__ == '__main__':
     parser.add_argument('-n','--num_sequence', type=int, default=1)
 
     args = parser.parse_args()
-    main(args.yaml_path, args.output_path, args.mode, args.fps, args.max_sequence_length)
+    main(args.yaml_path, args.output_path, args.mode, args.fps, args.num_sequence)

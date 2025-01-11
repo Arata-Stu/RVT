@@ -91,7 +91,14 @@ class VideoWriter:
 
         sequence_count = 0
         rnn_state = RNNStates()
-        input_padder = InputPadderFromShape((384, 640))
+        if config.dataset.name == "gen1":
+            size = (256, 320)
+        elif config.dataset.name == "gen4":
+            size = (384, 640)
+        else:
+            raise ValueError(f"Unknown dataset name: {config.dataset.name}")
+
+        input_padder = InputPadderFromShape(size)
 
         for batch in data.test_dataloader():
             data = batch["data"]

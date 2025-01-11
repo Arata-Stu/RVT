@@ -18,6 +18,7 @@ dataset:
   ev_repr_name: "event_frame_dt=20"
   sequence_length: 1
 
+ckpt_path: "./ckpt/gen4_20.ckpt"
 model:
   name: rnndet
   backbone:

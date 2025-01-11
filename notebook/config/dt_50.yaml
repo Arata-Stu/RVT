@@ -18,7 +18,7 @@ dataset:
   ev_repr_name: "event_frame_dt=50"
   sequence_length: 1
 
-ckpt_path: "./ckpt/gen4_dt_50.ckpt"
+ckpt_path: "./ckpt/gen4_50.ckpt"
 model:
   name: rnndet
   backbone:

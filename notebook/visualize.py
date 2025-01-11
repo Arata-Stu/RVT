@@ -53,7 +53,7 @@ class VideoWriter:
                 y1 = max(0, int(y1))
                 x2 = min(ev_tensor.shape[1] - 1, int(x2))
                 y2 = min(ev_tensor.shape[0] - 1, int(y2))
-                color = (255, 0, 0)  # Blue
+                color = (255, 255, 0)  # Yello RGB
                 cv2.rectangle(ev_tensor, (x1, y1), (x2, y2), color, 2)
                 label = f"{class_id:.2f}"
                 cv2.putText(ev_tensor, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
@@ -61,6 +61,9 @@ class VideoWriter:
         self.video_writer.write(cv2.cvtColor(ev_tensor, cv2.COLOR_RGB2BGR))
 
     def run(self, config: DictConfig, max_sequences: int = 1):
+        # デバイスの設定
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
         data = fetch_data_module(config)
         data.setup("test")
 
@@ -69,10 +72,11 @@ class VideoWriter:
             model = fetch_model_module(config)
             model.setup("test")
             model.eval()
+            model.to(device)  # モデルをデバイスに移動
 
             ckpt_path = config.ckpt_path
             if ckpt_path != "":
-                ckpt = torch.load(ckpt_path, map_location=torch.device('cpu'))
+                ckpt = torch.load(ckpt_path, map_location=device)  # デバイスに合わせてチェックポイントをロード
                 model.load_state_dict(ckpt['state_dict'])
 
         sequence_count = 0
@@ -97,7 +101,7 @@ class VideoWriter:
             sequence_len = len(ev_repr)
             for tidx in range(sequence_len):
                 ev_tensors = ev_repr[tidx]
-                ev_tensors = ev_tensors.to(torch.float32)
+                ev_tensors = ev_tensors.to(torch.float32).to(device)  # デバイスに移動
 
                 labels_yolox = None
                 pred_processed = None

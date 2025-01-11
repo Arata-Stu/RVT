@@ -20,7 +20,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-y','--yaml_path', type=str, required=True)
     parser.add_argument('-o','--output_path', type=str, required=True)
-    parser.add_argument('-m','--mode', type=int, default=0, help='0: img only, 1: img + label, 2: img + pred, 3: img + label + pred')
+    parser.add_argument('-m','--mode', type=int, default=1, help='1: img only, 2: img + label, 3: img + pred, 4: img + label + pred')
     parser.add_argument('-f','--fps', type=int, default=10)
     parser.add_argument('-n','--num_sequence', type=int, default=1)
 

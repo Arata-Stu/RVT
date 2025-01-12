@@ -64,7 +64,7 @@ class VideoWriter:
                 y1 = max(0, int(y1))
                 x2 = min(ev_tensor.shape[1] - 1, int(x2))
                 y2 = min(ev_tensor.shape[0] - 1, int(y2))
-                color = (255, 255, 0)  # Yellow
+                color = (0, 255, 255)  # Yellow
                 cv2.rectangle(ev_tensor, (x1, y1), (x2, y2), color, 2)
                 label = f"{class_id:.2f}"
                 cv2.putText(ev_tensor, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)

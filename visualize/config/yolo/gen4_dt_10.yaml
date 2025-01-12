@@ -1,0 +1,57 @@
+batch_size:
+  train: 1
+  eval: 1
+
+hardware:
+  num_workers:
+    train: 1
+    eval: 1
+
+dataset:
+  name: "gen1"
+  downsample_by_factor_2: false
+  path: "../datasets/pre_gen4_10"
+  train:
+    sampling: stream
+  eval:
+    sampling: stream
+  ev_repr_name: "event_frame_dt=10"
+  sequence_length: 1
+
+ckpt_path: "./ckpt/yolo/YOLOX_gen4_10.ckpt"
+model:
+  name: YOLOX
+  backbone:
+    name: Darknet
+    input_dim: 3
+    out_features: [dark3, dark4, dark5]
+    depth: 0.33
+    width: 0.5 
+    depthwise: False
+    act: "silu"
+    in_res_hw:
+      - ???
+      - ???
+      
+  fpn:
+    name: PAFPN
+    compile:
+      enable: False
+      args:
+        mode: reduce-overhead
+    depth: 0.33 # round(depth * 3) == num bottleneck blocks
+    # stage 1 is the first and len(num_layers) is the last
+    in_stages: [dark3, dark4, dark5]
+    depthwise: False
+    act: "silu"
+  head:
+    name: YoloX
+    compile:
+      enable: False
+      args:
+        mode: reduce-overhead
+    depthwise: False
+    act: "silu"
+  postprocess:
+    confidence_threshold: 0.1
+    nms_threshold: 0.45

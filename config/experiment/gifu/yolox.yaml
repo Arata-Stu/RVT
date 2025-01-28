@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - yolox_default
+
+model:
+  backbone:
+    depth: 0.33
+    width: 0.5
+  fpn:
+    depth: 0.33

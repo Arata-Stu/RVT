@@ -2,9 +2,9 @@ import os
 
 # 固定パラメータ
 gpu_ids = 0
-batch_size_per_gpu = 8
-train_workers_per_gpu = 12
-eval_workers_per_gpu = 4
+batch_size_per_gpu = 3
+train_workers_per_gpu = 2
+eval_workers_per_gpu = 1
 mdl_cfg = "tiny"  # MDL_CFGの値を指定
 base_data_dir = "./datasets/gifu_pre"  # DATA_DIRの値を指定
 artifact_name = "iasl_at-gifu-university/part2_RVT_gen4_frame50/checkpoint-fbjr3fbh-last:v39"

@@ -51,6 +51,7 @@ class ShardedStreamingDataPipe(IterDataPipe):
         num_datapipes = len(datapipe_list)
         assert num_datapipes > 0
         assert batch_size > 0
+        print(f"num_datapipes: {num_datapipes}, batch_size: {batch_size}")
         assert num_datapipes >= batch_size, "Each worker must at least get 'batch_size' number of datapipes. " \
                                             "Otherwise, we would have to support dynamic batch sizes. " \
                                             "As a workaround, decrease the number of workers."

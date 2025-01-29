@@ -321,7 +321,7 @@ def get_base_delta_ts_for_labels_us(unique_label_ts_us: np.ndarray, dataset_type
     median_diff_us = np.median(diff_us)
 
     hz = int(np.rint(10 ** 6 / median_diff_us))
-    assert hz in {30, 60}, f'{hz=} but should be either 30 or 60'
+    assert hz in {20, 30, 60}, f'{hz=} but should be either 30 or 60'
 
     delta_t_us_approx_10hz = int(6 * median_diff_us if hz == 60 else 3 * median_diff_us)
     return delta_t_us_approx_10hz

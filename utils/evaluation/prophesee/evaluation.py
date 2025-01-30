@@ -10,13 +10,15 @@ def evaluate_list(result_boxes_list,
                   apply_bbox_filters: bool = True,
                   downsampled_by_2: bool = False,
                   return_aps: bool = True):
-    assert camera in {'gen1', 'gen4'}
+    assert camera in {'gen1', 'gen4', 'gifu', 'dsec'}
 
     if camera == 'gen1':
         classes = ("car", "pedestrian")
     elif camera == 'gen4':
         classes = ("pedestrian", "two-wheeler", "car")
     elif camera == 'gifu':
+        classes = ("pedestrian", "two-wheeler", "car")
+    elif camera == 'dsec':
         classes = ("pedestrian", "two-wheeler", "car")
     else:
         raise NotImplementedError

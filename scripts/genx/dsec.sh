@@ -5,8 +5,8 @@ DATA_DIR="/mnt/2TB_ssd/DSEC/"
 BASE_DEST_DIR="/mnt/2TB_ssd/pre_dsec"
 NUM_PROCESSES=5
 
-# DURATION=("5" "10" "20" "50" "100")  # 配列から括弧を取り除く
-DURATION=("5")
+DURATION=("5" "10" "20" "50" "100")  # 配列から括弧を取り除く
+# DURATION=("5"/)
 CONST_DURATION_DIR="conf_preprocess/extraction"
 
 # event_frame.yaml のリスト

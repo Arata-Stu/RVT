@@ -3,7 +3,7 @@ defaults:
 
 name: dsec
 ev_repr_name: 'stacked_histogram_dt=50_nbins=10'
-sequence_length: 5
+sequence_length: 10
 resolution_hw: [480, 640]
 downsample_by_factor_2: False
 only_load_end_labels: False

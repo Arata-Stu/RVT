@@ -10,7 +10,7 @@ input_channels = 3  # 入力チャンネル数
 
 # dtごとに異なるckptを指定する辞書
 dt_ckpt_map = {
-    5: "./ckpt/gen4__5.ckpt",
+    5: "./ckpt/gen4_5.ckpt",
     10: "./ckpt/gen4_10.ckpt",
     20: "./ckpt/gen4_20.ckpt",
     50: "./ckpt/gen4_50.ckpt",

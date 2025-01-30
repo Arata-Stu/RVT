@@ -62,8 +62,8 @@ split_name_2_type = {
     'test': SplitType.TEST,
 }
 
-dataset_2_height = {'gen1': 240, 'gen4': 720, 'gifu': 480}
-dataset_2_width = {'gen1': 304, 'gen4': 1280, 'gifu': 640}
+dataset_2_height = {'gen1': 240, 'gen4': 720, 'gifu': 480, 'dsec': 480}
+dataset_2_width = {'gen1': 304, 'gen4': 1280, 'gifu': 640, 'dsec': 640}
 
 # The following sequences would be discarded because all the labels would be removed after filtering:
 dirs_to_ignore = {
@@ -200,7 +200,7 @@ class H5Reader:
 
 
 def prophesee_bbox_filter(labels: np.ndarray, dataset_type: str) -> np.ndarray:
-    assert dataset_type in {'gen1', 'gen4', "gifu"}
+    assert dataset_type in {'gen1', 'gen4', "gifu", "dsec"}
 
     # Default values taken from: https://github.com/prophesee-ai/prophesee-automotive-dataset-toolbox/blob/0393adea2bf22d833893c8cb1d986fcbe4e6f82d/src/psee_evaluator.py#L23-L24
     if dataset_type == "gen1":
@@ -209,6 +209,9 @@ def prophesee_bbox_filter(labels: np.ndarray, dataset_type: str) -> np.ndarray:
         min_box_diag = 60
     elif dataset_type == "gifu":
         min_box_diag = 60
+    elif dataset_type == "dsec":
+        min_box_diag = 60
+    
     
     # Corrected values from supplementary mat from paper for min_box_side!
     if dataset_type == "gen1":
@@ -217,6 +220,8 @@ def prophesee_bbox_filter(labels: np.ndarray, dataset_type: str) -> np.ndarray:
         min_box_side = 20
     elif dataset_type == "gifu":
         min_box_side = 60
+    elif dataset_type == "dsec":
+        min_box_side = 20
     
 
     w_lbl = labels['w']
@@ -240,7 +245,7 @@ def conservative_bbox_filter(labels: np.ndarray) -> np.ndarray:
 
 def remove_faulty_huge_bbox_filter(labels: np.ndarray, dataset_type: str) -> np.ndarray:
     """There are some labels which span the frame horizontally without actually covering an object."""
-    assert dataset_type in {'gen1', 'gen4', 'gifu'}
+    assert dataset_type in {'gen1', 'gen4', 'gifu', 'dsec'}
     w_lbl = labels['w']
     max_width = (9 * dataset_2_width[dataset_type]) // 10
     side_ok = (w_lbl <= max_width)

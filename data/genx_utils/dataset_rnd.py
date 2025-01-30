@@ -41,6 +41,8 @@ class SequenceDataset(Dataset):
             dataset_type = DatasetType.GEN4
         elif dataset_config.name == 'gifu':
             dataset_type = DatasetType.GIFU
+        elif dataset_config.name == 'dsec':
+            dataset_type = DatasetType.DSEC
         else:
             raise NotImplementedError
         self.sequence = SequenceForRandomAccess(path=path,

@@ -101,7 +101,10 @@ class VideoWriter:
             num_classes = 3
         elif config.dataset.name == "gifu":
             size = (512, 640)
-            num_classes = 5
+            num_classes = 3
+        elif config.dataset.name == "dsec":
+            size = (512, 640)
+            num_classes = 3
         else:
             raise ValueError(f"Unknown dataset name: {config.dataset.name}")
 

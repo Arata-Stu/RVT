@@ -72,7 +72,26 @@ dirs_to_ignore = {
              '17-04-06_15-14-36_1159500000_1219500000',
              '17-04-11_15-13-23_122500000_182500000'),
     'gen4': (),
-    'dsec': (),
+    'dsec': ('zurich_city_07_a', 
+             'zurich_city_06_a',
+             'zurich_city_01_c',
+             'zurich_city_01_b', 
+             'zurich_city_05_b',
+             'zurich_city_11_a',
+             'zurich_city_12_a',
+             'interlaken_00_d', 
+             'interlaken_00_e', 
+             'interlaken_00_b',
+             'interlaken_00_c',
+            'interlaken_00_f',
+             'interlaken_01_a', 
+             'zurih_city_00_b',
+             'zurich_city_02_a', 
+             'zurich_city_04_a',
+             'zurich_city_01_e',
+             'zurich_city_09_b',
+             'zurich_city_18_a',
+             'thun_00_a'),
 }
 
 
@@ -871,13 +890,10 @@ if __name__ == '__main__':
                 continue
 
             dir_name = sequence_dir.name
-            # 無視するシーケンスがあれば対応
+            # ここで無視するシーケンスをスキップ
             if dir_name in dirs_to_ignore['dsec']:
                 continue
 
-            # DSEC のパス指定: 
-            #   tracks.npy -> object_detections/left/tracks.npy
-            #   events.h5 -> events/left/events.h5
             npy_file = sequence_dir / "object_detections" / "left" / "tracks.npy"
             h5f_path = sequence_dir / "events" / "left" / "events.h5"
             if not npy_file.exists() or not h5f_path.exists():
@@ -886,14 +902,18 @@ if __name__ == '__main__':
 
             all_sequences.append(sequence_dir)
 
+
         # 例: 8:1:1 の割合で train/val/test に分割
-        random.shuffle(all_sequences)
+        all_sequences = sorted(all_sequences)
+
+        # 例: 8:1:1 の割合で train/val/test に分割
         num_all = len(all_sequences)
         num_train = int(num_all * 0.8)
         num_val = int(num_all * 0.1)
+
         train_seq_dirs = all_sequences[:num_train]
-        val_seq_dirs = all_sequences[num_train : num_train + num_val]
-        test_seq_dirs = all_sequences[num_train + num_val :]
+        val_seq_dirs   = all_sequences[num_train : num_train + num_val]
+        test_seq_dirs  = all_sequences[num_train + num_val :]
 
         # 出力先を準備 (train/val/test)
         train_out_dir = target_dir / "train"

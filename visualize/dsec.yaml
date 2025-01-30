@@ -10,7 +10,7 @@ hardware:
 dataset:
   name: "dsec"
   downsample_by_factor_2: false
-  path: "../datasets/dsec_pre_5"
+  path: "../datasets/pre_dsec_5"
   train:
     sampling: stream
   eval:

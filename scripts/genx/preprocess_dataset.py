@@ -361,6 +361,8 @@ def labels_and_ev_repr_timestamps(npy_file: Path,
 
     sequence_labels = np.load(str(npy_file))
     assert len(sequence_labels) > 0
+    if dataset_type == 'dsec':
+        sequence_labels['t'] = sequence_labels['t'] // 1000  # ns → µs に変換
 
     sequence_labels = apply_filters(labels=sequence_labels,
                                     split_type=split_type,

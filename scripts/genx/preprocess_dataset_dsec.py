@@ -385,7 +385,8 @@ def labels_and_ev_repr_timestamps(npy_file: Path,
                                   filter_cfg: DictConfig,
                                   align_t_ms: int,
                                   ts_step_ev_repr_ms: int,
-                                  dataset_type: str):
+                                  dataset_type: str,
+                                  in_h5_file:Path):
     assert npy_file.exists()
     assert npy_file.suffix == '.npy'
     ts_step_frame_ms = 100
@@ -399,7 +400,12 @@ def labels_and_ev_repr_timestamps(npy_file: Path,
     assert len(sequence_labels) > 0
 
     if dataset_type == 'dsec':
-        sequence_labels['t'] = sequence_labels['t'] // 1000  # ns → µs に変換
+        with h5py.File(str(in_h5_file), 'r') as h5f:
+            offset_us = int(h5f['t_offset'][()])  # マイクロ秒
+        # ラベル側のタイムスタンプから引く
+        sequence_labels['t'] = sequence_labels['t'] - offset_us
+
+
 
 
     sequence_labels = apply_filters(labels=sequence_labels,
@@ -609,7 +615,8 @@ def process_sequence(dataset: str,
                 filter_cfg=filter_cfg,
                 align_t_ms=align_t_ms,
                 ts_step_ev_repr_ms=ts_step_ev_repr_ms,
-                dataset_type=dataset)
+                dataset_type=dataset,
+                in_h5_file=in_h5_file)
     except NoLabelsException:
         parent_dir = out_labels_dir.parent
         print(f'No labels after filtering. Deleting {str(parent_dir)}')

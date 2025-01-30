@@ -2,17 +2,24 @@ import os
 
 # 固定パラメータ
 gpu_ids = 0
-batch_size_per_gpu = 4
+batch_size_per_gpu = 1
 mdl_cfg = "tiny"  # MDL_CFGの値を指定
-base_data_dir = "/home/metis/Arata_repos/dsec_pre"  # DATA_DIRの値を指定
-ckpt_path = ".ckpt"  # CKPT_PATHの値を指定
+base_data_dir = "./datasets/pre_dsec"  # DATA_DIRの値を指定
 
 input_channels = 3  # 入力チャンネル数
-event_frame_dts = [5, 10, 20, 50, 100]  # 必要に応じて値を追加
 
+# dtごとに異なるckptを指定する辞書
+dt_ckpt_map = {
+    5: "./ckpt/gen4__5.ckpt",
+    10: "./ckpt/gen4_10.ckpt",
+    20: "./ckpt/gen4_20.ckpt",
+    50: "./ckpt/gen4_50.ckpt",
+    100: "./ckpt/gen4_100.ckpt",
+    # 必要に応じて追加
+}
 
 # ループ処理
-for dt in event_frame_dts:
+for dt, ckpt_path in dt_ckpt_map.items():
     data_dir = f"{base_data_dir}_{dt}"
     command = f"""
         python3 validation.py dataset=dsec dataset.path={data_dir} checkpoint="'{ckpt_path}'" \
@@ -21,6 +28,5 @@ for dt in event_frame_dts:
         dataset.ev_repr_name="'event_frame_dt={dt}'" model.backbone.input_channels={input_channels} model.postprocess.confidence_threshold=0.001
         """
 
-
-    print(f"Running command for dsec event_frame_dt={dt}")
+    print(f"Running command for dsec event_frame_dt={dt} with checkpoint {ckpt_path}")
     os.system(command)  # 実際にコマンドを実行

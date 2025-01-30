@@ -2,13 +2,13 @@ import os
 
 # 固定パラメータ
 gpu_ids = 0
-batch_size_per_gpu = 8
+batch_size_per_gpu = 1
 train_workers_per_gpu = 12
 eval_workers_per_gpu = 4
 mdl_cfg = "tiny"  # MDL_CFGの値を指定
 base_data_dir = "./datasets/pre_dsec"  # DATA_DIRの値を指定
 
-sampling = "mixed"
+sampling = "random"
 input_channels = 3  # 入力チャンネル数
 
 # event_frame_dts に対応する artifact_name を指定

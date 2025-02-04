@@ -35,5 +35,5 @@ dataset:
     sampling: 'stream'
   ev_repr_name: 'stacked_histogram_dt=50_nbins=10'
   sequence_length: 1
-  downsample_by_factor_2: True
+  downsample_by_factor_2: False
   only_load_end_labels: False

@@ -22,10 +22,10 @@ dt_ckpt_map = {
 for dt, ckpt_path in dt_ckpt_map.items():
     data_dir = f"{base_data_dir}_{dt}"
     command = f"""
-        python3 validation.py dataset=yolox dataset.path={data_dir} checkpoint="'{ckpt_path}'" \
-        +experiment/yolox="{mdl_cfg}.yaml" hardware.gpus={gpu_ids} \
+        python3 validation.py dataset=dsec dataset.path={data_dir} checkpoint="'{ckpt_path}'" \
+        +experiment/dsec="{mdl_cfg}.yaml" hardware.gpus={gpu_ids} \
         batch_size.eval={batch_size_per_gpu} use_test_set=1 \
-        dataset.ev_repr_name="'event_frame_dt={dt}'" model.backbone.input_channels={input_channels} model.postprocess.confidence_threshold=0.001
+        dataset.ev_repr_name="'event_frame_dt={dt}'" model.backbone.input_dim={input_channels} model.postprocess.confidence_threshold=0.001
         """
 
     print(f"Running command for dsec event_frame_dt={dt} with checkpoint {ckpt_path}")

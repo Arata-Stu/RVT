@@ -31,8 +31,8 @@ for dt in event_frame_dts:
     wandb.group_name=dsec +experiment/dsec={mdl_cfg}.yaml hardware.gpus={gpu_ids} \
     batch_size.train={batch_size_per_gpu} batch_size.eval={batch_size_per_gpu} \
     hardware.num_workers.train={train_workers_per_gpu} hardware.num_workers.eval={eval_workers_per_gpu} \
-    dataset.ev_repr_name="'event_frame_dt={dt}'" model.backbone.input_channels={input_channels} dataset.train.sampling={sampling}\
-    training.max_steps=100000 wandb.resume_only_weights=True wandb.artifact_name="{artifact_name}" dataset.sequence_length=32 \
+    dataset.ev_repr_name="'event_frame_dt={dt}'" model.backbone.input_dim={input_channels} dataset.train.sampling={sampling}\
+    training.max_steps=100000 wandb.resume_only_weights=True wandb.artifact_name="{artifact_name}" dataset.sequence_length=16 \
     """
     print(f"Running command for dsec event_frame_dt={dt} with artifact {artifact_name}")
     os.system(command)  # 実際にコマンドを実行

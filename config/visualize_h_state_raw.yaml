@@ -1,0 +1,61 @@
+defaults:
+  - dataset: ???
+  - model: rnndet
+  - _self_
+
+checkpoint: ???
+
+# Raw inference only uses the dataset choice for the pretrained geometry/classes.
+# No preprocessed GenX dataset directory is required.
+dataset:
+  path: unused_for_raw_input
+
+source:
+  # Native OpenEB .raw, JetPilot EVSBIN v1, or a ROS 2 bag directory/file.
+  path: ???
+  type: auto  # auto, raw, evbin, or rosbag
+  event_topic: /event_camera/events
+  # RAW conversion requires JetPilot's evs_raw_to_evbin executable.
+  raw_converter: evs_raw_to_evbin
+  # ROS bag conversion is intentionally isolated from the RVT Python env.
+  rosbag_python: python3
+  evbin_cache: null
+  reuse_cache: true
+  reorder_window_us: 10000
+  start_offset_ms: 0
+  duration_ms: null
+  # center_crop avoids aspect-ratio distortion. Other options: letterbox, stretch.
+  geometry_mode: center_crop
+
+representation:
+  # These defaults reproduce RVT's pretrained stacked_histogram_dt=50_nbins=10 input.
+  bins: 10
+  window_ms: 50
+  stride_ms: 50
+  count_cutoff: 10
+
+detections:
+  enable: true
+  # null uses model.postprocess.confidence_threshold.
+  confidence_threshold: null
+
+visualization:
+  write_video: true
+  output: raw_h_state.mp4
+  device: cuda:0
+  fps: 20
+  codec: mp4v
+  stages: [1, 2, 3, 4]
+  channel_reduction: mean_abs
+  percentile: 99.0
+  scale_ema_decay: 0.95
+  max_frames: null
+  panel_width: 640
+  panel_height: 360
+  image_export:
+    enable: false
+    frames: []
+    output_dir: raw_h_state_frames
+    format: png
+    jpeg_quality: 95
+    include_titles: false

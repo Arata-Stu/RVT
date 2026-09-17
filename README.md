@@ -17,6 +17,40 @@ Watch the [**video**](https://youtu.be/xZ-pNwHxHgY) for a quick overview.
 ```
 
 ## Installation
+### uv
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then create the Python 3.9 environment used by
+this project. `uv` will download Python 3.9 automatically if it is not already available:
+
+```Bash
+uv python install 3.9
+uv venv --python 3.9
+source .venv/bin/activate
+```
+
+On macOS, install the platform-native PyTorch wheels followed by the remaining dependencies:
+
+```Bash
+uv pip install -r torch-req.txt
+uv pip install -r requirements.txt
+```
+
+On Linux with CUDA 11.8, use the PyTorch CUDA wheel index instead:
+
+```Bash
+uv pip install -r torch-req.txt --index-url https://download.pytorch.org/whl/cu118
+uv pip install -r requirements.txt
+```
+
+Detectron2 is optional and only speeds up evaluation. Install it in the active environment if needed:
+
+```Bash
+uv pip install 'git+https://github.com/facebookresearch/detectron2.git'
+```
+
+The checked-in `.python-version` lets later `uv` commands select Python 3.9 automatically. To reactivate an existing
+environment, run `source .venv/bin/activate`.
+
 ### Conda
 We highly recommend to use [Mambaforge](https://github.com/conda-forge/miniforge#mambaforge) to reduce the installation time.
 ```Bash
@@ -186,6 +220,131 @@ wandb.group_name=gen1 +experiment/gen1="${MDL_CFG}.yaml" hardware.gpus=${GPU_IDS
 batch_size.train=${BATCH_SIZE_PER_GPU} batch_size.eval=${BATCH_SIZE_PER_GPU} \
 hardware.num_workers.train=${TRAIN_WORKERS_PER_GPU} hardware.num_workers.eval=${EVAL_WORKERS_PER_GPU}
 ```
+
+## Visualizing recurrent hidden states
+
+`visualize_h_state.py` runs a pretrained model over one preprocessed sequence and writes an MP4 containing the event
+input and the ConvLSTM hidden state (`h`) from each recurrent backbone stage. No training is performed. Set
+`DATA_DIR`, `CKPT_PATH`, and `MDL_CFG` as in the evaluation examples, then run:
+
+```Bash
+python visualize_h_state.py dataset=gen1 dataset.path=${DATA_DIR} checkpoint=${CKPT_PATH} \
++experiment/gen1="${MDL_CFG}.yaml" visualization.output=h_state.mp4
+```
+
+The first sequence in the validation split is used by default. Select a sequence by directory name or index, limit
+the output while testing, or change the device as follows:
+
+```Bash
+python visualize_h_state.py dataset=gen4 dataset.path=${DATA_DIR} checkpoint=${CKPT_PATH} \
++experiment/gen4="${MDL_CFG}.yaml" visualization.sequence=moorea_2019-02-19_000_0_0 \
+visualization.max_frames=300 visualization.output=outputs/moorea_h_state.mp4
+
+# CPU inference (considerably slower)
+python visualize_h_state.py dataset=gen1 dataset.path=${DATA_DIR} checkpoint=${CKPT_PATH} \
++experiment/gen1="${MDL_CFG}.yaml" visualization.device=cpu visualization.sequence_index=2
+```
+
+By default, channels are reduced with their mean absolute activation and each stage maintains its own robust,
+temporally smoothed color scale. `visualization.channel_reduction=mean` preserves the activation sign instead.
+Other useful overrides are `visualization.stages=[1,2,3,4]`, `visualization.fps=20`,
+`visualization.percentile=99`, and `visualization.scale_ema_decay=0.95`.
+
+The MP4 header shows the sequence name and a zero-based frame number. Once a useful frame has been identified, rerun
+in image-only mode to export the event image and every selected hidden-state stage as separate, native-resolution files:
+
+```Bash
+python visualize_h_state.py dataset=gen1 dataset.path=${DATA_DIR} checkpoint=${CKPT_PATH} \
++experiment/gen1="${MDL_CFG}.yaml" visualization.sequence=SEQ_NAME visualization.write_video=false \
+visualization.image_export.enable=true 'visualization.image_export.frames=[120,245]' \
+visualization.image_export.output_dir=outputs/paper_frames visualization.image_export.format=png
+```
+
+Exported images have no embedded title by default, making them suitable for figures. Their filenames and
+`<sequence>_metadata.json` retain the sequence, frame, stage, reduction, shape, and color-scale information. Set
+`visualization.image_export.include_titles=true` if labeled standalone images are preferred. JPEG output is available
+with `visualization.image_export.format=jpg`.
+
+## JetPilot EVS RAW / ROS bag inference
+
+`visualize_h_state_raw.py` accepts event recordings produced by JetPilot and runs the complete RVT backbone and
+detection head while visualizing the recurrent hidden states. Supported inputs are:
+
+| Input | Handling |
+|---|---|
+| JetPilot `EVSBIN v1` (`.evbin`) | Read directly with a disk-backed memory map |
+| OpenEB native recording (`.raw`) | Converted with JetPilot's `evs_raw_to_evbin` tool |
+| ROS 2 bag (`.mcap`, `.db3`, or bag directory) | `EventPacket` is decoded and converted to EVSBIN by an isolated helper process |
+
+The adapter reproduces the pretrained RVT input contract: a 50 ms window and stride, 10 temporal bins, separate
+polarity-major channels, and a per-pixel/bin count cutoff of 10. JetPilot's default online tensor uses a different
+40 ms window, 4 ms stride, and opposite polarity ordering, so it must not be passed to RVT without this adaptation.
+The source geometry is center-cropped and resized in event-coordinate space by default; use
+`source.geometry_mode=letterbox` to preserve the complete field of view or `stretch` to fill the frame.
+
+### EVSBIN input
+
+```Bash
+python visualize_h_state_raw.py dataset=gen4 checkpoint=${CKPT_PATH} \
++experiment/gen4="${MDL_CFG}.yaml" source.path=/path/to/events.evbin \
+visualization.output=outputs/events_rvt.mp4
+```
+
+The video contains six panels by default: events, RVT detections, and hidden states from stages 1–4. Its header shows
+the source name, zero-based frame number, relative time, and event count.
+
+### Native OpenEB RAW input
+
+First build `evs_raw_to_evbin` in JetPilot's `tools/evs_benchmark` project with the Metavision SDK available. Pass the
+resulting executable to RVT:
+
+```Bash
+python visualize_h_state_raw.py dataset=gen4 checkpoint=${CKPT_PATH} \
++experiment/gen4="${MDL_CFG}.yaml" source.path=/path/to/recording.raw \
+source.raw_converter=/path/to/JetPilot/tools/evs_benchmark/build/evs_raw_to_evbin \
+visualization.output=outputs/recording_rvt.mp4
+```
+
+The reordered canonical file is cached next to the MP4 as `<source>.rvt.evbin`. Set `source.reuse_cache=false` to
+reconvert it or set `source.evbin_cache=/path/to/cache.evbin` to choose an explicit location.
+
+### ROS 2 bag input
+
+Bag conversion needs `rosbags` and JetPilot/OpenEB's `event_camera_py`. Because `event_camera_py` is normally built
+for the ROS system Python while RVT uses Python 3.9, decoding runs in a separate process. Source the JetPilot ROS
+workspace first and point `source.rosbag_python` at the interpreter that can import `event_camera_py`:
+
+```Bash
+python visualize_h_state_raw.py dataset=gen4 checkpoint=${CKPT_PATH} \
++experiment/gen4="${MDL_CFG}.yaml" source.path=/path/to/rosbag_directory \
+source.event_topic=/event_camera/events source.rosbag_python=/usr/bin/python3 \
+visualization.output=outputs/bag_rvt.mp4
+```
+
+If `rosbags` is not already installed in that decoder environment, install `raw-input-req.txt` there. The default
+topic is `/event_camera/events`; `/event_camera/events_raw` can be selected with `source.event_topic`.
+
+### Selecting a segment and exporting paper figures
+
+Offsets and duration are in milliseconds. In image-only mode, the selected event image, detection image, and every
+hidden-state stage are written separately at their native visualization resolutions:
+
+```Bash
+python visualize_h_state_raw.py dataset=gen4 checkpoint=${CKPT_PATH} \
++experiment/gen4="${MDL_CFG}.yaml" source.path=/path/to/events.evbin \
+source.start_offset_ms=12000 source.duration_ms=5000 visualization.write_video=false \
+visualization.image_export.enable=true 'visualization.image_export.frames=[20,42]' \
+visualization.image_export.output_dir=outputs/paper_frames
+```
+
+The recurrent state is always computed from the beginning of the selected segment up to each requested frame. The
+export metadata records source and model geometry, representation parameters, timestamps, event counts, stage shapes,
+and color scales.
+
+The released RVT checkpoints were trained on Prophesee Gen1/1 Mpx data rather than SilkyEvCam recordings. The adapter
+makes the tensor contract compatible, but it does not remove sensor/domain shift; detection accuracy must therefore be
+validated quantitatively before the predictions are used as research results.
+
 ## Works Built on This Project
 - [LEOD: Label-Efficient Object Detection for Event Cameras](https://github.com/Wuziyi616/LEOD). CVPR 2024
 - [State Space Models for Event Cameras](https://github.com/uzh-rpg/ssms_event_cameras). CVPR 2024

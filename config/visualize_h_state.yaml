@@ -1,0 +1,43 @@
+defaults:
+  - dataset: ???
+  - model: rnndet
+  - _self_
+
+# The checkpoint and experiment override must match the selected dataset/model.
+checkpoint: ???
+
+visualization:
+  # One of: train, val, test
+  split: val
+  # Select a sequence by directory name. If null, sequence_index is used.
+  sequence: null
+  sequence_index: 0
+  # Frame numbers shown in the video and used for image export are zero-based.
+  write_video: true
+  output: h_state.mp4
+  device: cuda:0
+  fps: 20
+  codec: mp4v
+  # 1-based recurrent backbone stage numbers.
+  stages: [1, 2, 3, 4]
+  # One of: mean_abs, rms, max_abs, mean
+  channel_reduction: mean_abs
+  # Robust per-stage scale tracking. A larger decay keeps colors more comparable
+  # over time; 0 makes each frame use only its own percentile.
+  percentile: 99.0
+  scale_ema_decay: 0.95
+  # null writes the complete sequence.
+  max_frames: null
+  panel_width: 640
+  panel_height: 360
+  image_export:
+    enable: false
+    # Exact zero-based frame numbers to export. Recurrent inference still starts
+    # at frame 0 so the selected hidden states are reproduced correctly.
+    frames: []
+    output_dir: h_state_frames
+    format: png  # png or jpg
+    jpeg_quality: 95
+    # Keep false for clean, publication-ready images. Sequence/frame information
+    # is always retained in filenames and <sequence>_metadata.json.
+    include_titles: false

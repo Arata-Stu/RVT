@@ -30,6 +30,11 @@ visualization:
   max_frames: null
   panel_width: 640
   panel_height: 360
+  labels:
+    # Draw the dataset ground-truth boxes in a panel separate from raw events.
+    enabled: true
+    line_thickness: 2
+    font_scale: 0.55
   image_export:
     enable: false
     # Exact zero-based frame numbers to export. Recurrent inference still starts

@@ -224,7 +224,7 @@ hardware.num_workers.train=${TRAIN_WORKERS_PER_GPU} hardware.num_workers.eval=${
 ## Visualizing recurrent hidden states
 
 `visualize_h_state.py` runs a pretrained model over one preprocessed sequence and writes an MP4 containing the event
-input and the ConvLSTM hidden state (`h`) from each recurrent backbone stage. No training is performed. Set
+input, dataset ground-truth boxes, and the ConvLSTM hidden state (`h`) from each recurrent backbone stage. No training is performed. Set
 `DATA_DIR`, `CKPT_PATH`, and `MDL_CFG` as in the evaluation examples, then run:
 
 ```Bash
@@ -264,6 +264,11 @@ Exported images have no embedded title by default, making them suitable for figu
 `<sequence>_metadata.json` retain the sequence, frame, stage, reduction, shape, and color-scale information. Set
 `visualization.image_export.include_titles=true` if labeled standalone images are preferred. JPEG output is available
 with `visualization.image_export.format=jpg`.
+
+Ground-truth visualization is enabled by default with `visualization.labels.enabled=true`. The raw event image and
+the event image with ground-truth boxes are separate video panels and are exported as separate `*_events.*` and
+`*_ground_truth.*` files. Frames without a dataset annotation are marked `no annotation` in the video; exported JSON
+distinguishes those frames from annotated frames containing zero objects.
 
 ## JetPilot EVS RAW / ROS bag inference
 

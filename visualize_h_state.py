@@ -16,6 +16,7 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 
 from config.modifier import dynamically_modify_train_config
+from data.genx_utils.labels import ObjectLabels
 from data.genx_utils.sequence_for_streaming import SequenceForIter
 from data.utils.types import DataType, DatasetType, LstmStates
 from modules.utils.fetch import fetch_model_module
@@ -85,6 +86,80 @@ def _event_representation_to_bgr(event_repr: torch.Tensor) -> np.ndarray:
     image[difference > 0] = (255, 255, 255)
     image[difference < 0] = (0, 0, 0)
     return image
+
+
+def _label_names(dataset_name: str) -> Tuple[str, ...]:
+    if dataset_name == "gen1":
+        return ("car", "pedestrian")
+    if dataset_name == "gen4":
+        # RVT's Gen4 preprocessing/evaluation keeps these three classes.
+        return ("pedestrian", "two wheeler", "car")
+    raise ValueError(f"Unsupported dataset for label visualization: {dataset_name}")
+
+
+def _draw_ground_truth(
+        event_image: np.ndarray,
+        labels: Optional[ObjectLabels],
+        dataset_name: str,
+        line_thickness: int,
+        font_scale: float) -> Tuple[np.ndarray, List[Dict[str, Any]]]:
+    image = event_image.copy()
+    if labels is None:
+        return image, []
+
+    names = _label_names(dataset_name)
+    colors = (
+        (0, 0, 255),      # pedestrian: red
+        (255, 255, 0),    # two wheeler: cyan
+        (0, 255, 255),    # car: yellow
+        (255, 0, 255),
+        (0, 165, 255),
+        (255, 0, 0),
+        (0, 255, 0),
+    )
+    height, width = image.shape[:2]
+    values = labels.object_labels.detach().cpu().numpy()
+    objects: List[Dict[str, Any]] = []
+    for row in values:
+        x, y, box_width, box_height = (float(value) for value in row[1:5])
+        class_id = int(row[5])
+        class_name = names[class_id] if 0 <= class_id < len(names) else f"class_{class_id}"
+        x0 = int(round(np.clip(x, 0, width - 1)))
+        y0 = int(round(np.clip(y, 0, height - 1)))
+        x1 = int(round(np.clip(x + box_width, 0, width - 1)))
+        y1 = int(round(np.clip(y + box_height, 0, height - 1)))
+        if x1 <= x0 or y1 <= y0:
+            continue
+
+        color = colors[class_id % len(colors)]
+        cv2.rectangle(image, (x0, y0), (x1, y1), color, line_thickness, cv2.LINE_AA)
+        (text_width, text_height), baseline = cv2.getTextSize(
+            class_name, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 1
+        )
+        text_top = max(0, y0 - text_height - baseline - 4)
+        cv2.rectangle(
+            image,
+            (x0, text_top),
+            (min(width - 1, x0 + text_width + 6), y0),
+            color,
+            -1,
+        )
+        cv2.putText(
+            image,
+            class_name,
+            (x0 + 3, max(text_height, y0 - baseline - 2)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            font_scale,
+            (0, 0, 0),
+            1,
+            cv2.LINE_AA,
+        )
+        objects.append({
+            "class_id": class_id,
+            "class_name": class_name,
+            "bbox_xywh": [x, y, box_width, box_height],
+        })
+    return image, objects
 
 
 def _reduce_hidden_state(hidden: torch.Tensor, reduction: str) -> Tuple[np.ndarray, bool]:
@@ -228,14 +303,16 @@ def _prepare_image_export(config: DictConfig) -> Tuple[bool, Set[int], Path, str
     return enabled, frames, output_dir, image_format, jpeg_quality, bool(export_config.include_titles)
 
 
-def _iter_real_frames(sequence: SequenceForIter) -> Iterable[torch.Tensor]:
+def _iter_real_frames(
+        sequence: SequenceForIter) -> Iterable[Tuple[torch.Tensor, Optional[ObjectLabels]]]:
     for sample_index in range(len(sequence)):
         sample = sequence[sample_index]
         event_representations = sample[DataType.EV_REPR]
+        labels = sample[DataType.OBJLABELS_SEQ]
         padded_mask = sample[DataType.IS_PADDED_MASK]
-        for event_repr, is_padded in zip(event_representations, padded_mask):
+        for event_repr, frame_labels, is_padded in zip(event_representations, labels, padded_mask):
             if not is_padded:
-                yield event_repr
+                yield event_repr, frame_labels
 
 
 def _validate_stages(stages: Sequence[int], number_of_stages: int) -> List[int]:
@@ -306,7 +383,15 @@ def main(config: DictConfig) -> None:
     if len(codec) != 4:
         raise ValueError(f"visualization.codec must contain four characters, got {codec!r}")
 
-    number_of_panels = 1 + len(stages)
+    labels_enabled = bool(config.visualization.labels.enabled)
+    label_line_thickness = int(config.visualization.labels.line_thickness)
+    label_font_scale = float(config.visualization.labels.font_scale)
+    if label_line_thickness <= 0:
+        raise ValueError("visualization.labels.line_thickness must be positive")
+    if label_font_scale <= 0:
+        raise ValueError("visualization.labels.font_scale must be positive")
+
+    number_of_panels = 1 + int(labels_enabled) + len(stages)
     output_size = (panel_size[0] * 3, panel_size[1] * math.ceil(number_of_panels / 3) + 48)
     writer: Optional[cv2.VideoWriter] = None
     if write_video:
@@ -340,11 +425,12 @@ def main(config: DictConfig) -> None:
         "channel_reduction": reduction,
         "percentile": float(config.visualization.percentile),
         "scale_ema_decay": float(config.visualization.scale_ema_decay),
+        "ground_truth_labels_enabled": labels_enabled,
         "frames": [],
     }
     try:
         with torch.inference_mode():
-            for frame_index, event_repr in enumerate(_iter_real_frames(sequence)):
+            for frame_index, (event_repr, frame_labels) in enumerate(_iter_real_frames(sequence)):
                 if max_frames is not None and frames_written >= int(max_frames):
                     break
 
@@ -356,6 +442,16 @@ def main(config: DictConfig) -> None:
                 previous_states = [(hidden.detach(), cell.detach()) for hidden, cell in states]
 
                 event_image = _event_representation_to_bgr(event_repr)
+                ground_truth_image: Optional[np.ndarray] = None
+                ground_truth_objects: List[Dict[str, Any]] = []
+                if labels_enabled:
+                    ground_truth_image, ground_truth_objects = _draw_ground_truth(
+                        event_image=event_image,
+                        labels=frame_labels,
+                        dataset_name=str(config.dataset.name),
+                        line_thickness=label_line_thickness,
+                        font_scale=label_font_scale,
+                    )
                 panels = []
                 if writer is not None:
                     panels.append(_make_panel(
@@ -363,6 +459,16 @@ def main(config: DictConfig) -> None:
                         f"Events | frame {frame_index}",
                         panel_size,
                     ))
+                    annotation_status = (
+                        f"{len(ground_truth_objects)} objects"
+                        if frame_labels is not None else "no annotation"
+                    )
+                    if labels_enabled and ground_truth_image is not None:
+                        panels.append(_make_panel(
+                            ground_truth_image,
+                            f"Ground truth | {annotation_status}",
+                            panel_size,
+                        ))
                 stage_images: Dict[int, np.ndarray] = {}
                 stage_metadata: Dict[str, Any] = {}
                 for stage in stages:
@@ -401,6 +507,22 @@ def main(config: DictConfig) -> None:
                     event_filename = f"{frame_stem}_events.{image_format}"
                     _write_export_image(event_export, export_dir / event_filename, image_format, jpeg_quality)
 
+                    ground_truth_filename: Optional[str] = None
+                    if labels_enabled and ground_truth_image is not None:
+                        ground_truth_export = ground_truth_image
+                        if export_titles:
+                            ground_truth_export = _add_export_title(
+                                ground_truth_export,
+                                f"sequence: {sequence_path.name} | frame: {frame_index:06d} | ground truth",
+                            )
+                        ground_truth_filename = f"{frame_stem}_ground_truth.{image_format}"
+                        _write_export_image(
+                            ground_truth_export,
+                            export_dir / ground_truth_filename,
+                            image_format,
+                            jpeg_quality,
+                        )
+
                     stage_filenames: Dict[str, str] = {}
                     for stage, heatmap in stage_images.items():
                         stage_export = heatmap
@@ -416,6 +538,9 @@ def main(config: DictConfig) -> None:
                     export_metadata["frames"].append({
                         "frame": frame_index,
                         "events": event_filename,
+                        "ground_truth": ground_truth_filename,
+                        "ground_truth_annotated": frame_labels is not None,
+                        "ground_truth_objects": ground_truth_objects,
                         "stages": stage_filenames,
                         "stage_visualization": stage_metadata,
                     })

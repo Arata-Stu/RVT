@@ -19,6 +19,7 @@ from config.modifier import dynamically_modify_train_config
 from data.genx_utils.labels import ObjectLabels
 from data.genx_utils.sequence_for_streaming import SequenceForIter
 from data.utils.types import DataType, DatasetType, LstmStates
+from models.detection.yolox.utils.boxes import postprocess
 from modules.utils.fetch import fetch_model_module
 
 
@@ -160,6 +161,57 @@ def _draw_ground_truth(
             "bbox_xywh": [x, y, box_width, box_height],
         })
     return image, objects
+
+
+def _draw_detections(
+        event_image: np.ndarray,
+        detections: Optional[torch.Tensor],
+        dataset_name: str) -> np.ndarray:
+    image = event_image.copy()
+    names = _label_names(dataset_name)
+    colors = ((0, 255, 255), (255, 255, 0), (0, 128, 255))
+    if detections is None:
+        return image
+
+    height, width = image.shape[:2]
+    for detection in detections.detach().float().cpu().numpy():
+        x1, y1, x2, y2, object_confidence, class_confidence, class_id = detection
+        x1 = int(np.clip(round(x1), 0, width - 1))
+        y1 = int(np.clip(round(y1), 0, height - 1))
+        x2 = int(np.clip(round(x2), 0, width - 1))
+        y2 = int(np.clip(round(y2), 0, height - 1))
+        if x2 <= x1 or y2 <= y1:
+            continue
+        class_index = int(class_id) % len(names)
+        confidence = float(object_confidence * class_confidence)
+        color = colors[class_index % len(colors)]
+        cv2.rectangle(image, (x1, y1), (x2, y2), color, 1, cv2.LINE_AA)
+        cv2.putText(
+            image,
+            f"{names[class_index]} {confidence:.2f}",
+            (x1, max(12, y1 - 4)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            color,
+            1,
+            cv2.LINE_AA,
+        )
+    return image
+
+
+def _serialize_detections(detections: Optional[torch.Tensor]) -> List[Dict[str, Any]]:
+    if detections is None:
+        return []
+    output: List[Dict[str, Any]] = []
+    for row in detections.detach().float().cpu().numpy():
+        output.append({
+            "xyxy": [float(value) for value in row[:4]],
+            "object_confidence": float(row[4]),
+            "class_confidence": float(row[5]),
+            "confidence": float(row[4] * row[5]),
+            "class_id": int(row[6]),
+        })
+    return output
 
 
 def _reduce_hidden_state(hidden: torch.Tensor, reduction: str) -> Tuple[np.ndarray, bool]:
@@ -391,7 +443,15 @@ def main(config: DictConfig) -> None:
     if label_font_scale <= 0:
         raise ValueError("visualization.labels.font_scale must be positive")
 
-    number_of_panels = 1 + int(labels_enabled) + len(stages)
+    detections_enabled = bool(config.detections.enabled)
+    confidence_threshold = config.detections.confidence_threshold
+    if confidence_threshold is None:
+        confidence_threshold = config.model.postprocess.confidence_threshold
+    confidence_threshold = float(confidence_threshold)
+    if not 0 <= confidence_threshold <= 1:
+        raise ValueError("detections.confidence_threshold must be within [0, 1]")
+
+    number_of_panels = 1 + int(detections_enabled) + int(labels_enabled) + len(stages)
     output_size = (panel_size[0] * 3, panel_size[1] * math.ceil(number_of_panels / 3) + 48)
     writer: Optional[cv2.VideoWriter] = None
     if write_video:
@@ -426,6 +486,8 @@ def main(config: DictConfig) -> None:
         "percentile": float(config.visualization.percentile),
         "scale_ema_decay": float(config.visualization.scale_ema_decay),
         "ground_truth_labels_enabled": labels_enabled,
+        "detections_enabled": detections_enabled,
+        "detection_confidence_threshold": confidence_threshold,
         "frames": [],
     }
     try:
@@ -436,12 +498,27 @@ def main(config: DictConfig) -> None:
 
                 model_input = event_repr.unsqueeze(0).to(device=device, dtype=module.dtype)
                 model_input = module.input_padder.pad_tensor_ev_repr(model_input)
-                _, states = module.mdl.forward_backbone(
+                backbone_features, states = module.mdl.forward_backbone(
                     x=model_input, previous_states=previous_states
                 )
                 previous_states = [(hidden.detach(), cell.detach()) for hidden, cell in states]
 
+                processed_detections: Optional[torch.Tensor] = None
+                if detections_enabled:
+                    predictions, _ = module.mdl.forward_detect(backbone_features)
+                    processed_detections = postprocess(
+                        predictions,
+                        num_classes=int(config.model.head.num_classes),
+                        conf_thre=confidence_threshold,
+                        nms_thre=float(config.model.postprocess.nms_threshold),
+                    )[0]
+
                 event_image = _event_representation_to_bgr(event_repr)
+                detection_image: Optional[np.ndarray] = None
+                if detections_enabled:
+                    detection_image = _draw_detections(
+                        event_image, processed_detections, str(config.dataset.name)
+                    )
                 ground_truth_image: Optional[np.ndarray] = None
                 ground_truth_objects: List[Dict[str, Any]] = []
                 if labels_enabled:
@@ -459,6 +536,12 @@ def main(config: DictConfig) -> None:
                         f"Events | frame {frame_index}",
                         panel_size,
                     ))
+                    if detections_enabled and detection_image is not None:
+                        panels.append(_make_panel(
+                            detection_image,
+                            f"RVT predictions | threshold {confidence_threshold:g}",
+                            panel_size,
+                        ))
                     annotation_status = (
                         f"{len(ground_truth_objects)} objects"
                         if frame_labels is not None else "no annotation"
@@ -507,6 +590,22 @@ def main(config: DictConfig) -> None:
                     event_filename = f"{frame_stem}_events.{image_format}"
                     _write_export_image(event_export, export_dir / event_filename, image_format, jpeg_quality)
 
+                    detection_filename: Optional[str] = None
+                    if detections_enabled and detection_image is not None:
+                        detection_export = detection_image
+                        if export_titles:
+                            detection_export = _add_export_title(
+                                detection_export,
+                                f"sequence: {sequence_path.name} | frame: {frame_index:06d} | RVT predictions",
+                            )
+                        detection_filename = f"{frame_stem}_predictions.{image_format}"
+                        _write_export_image(
+                            detection_export,
+                            export_dir / detection_filename,
+                            image_format,
+                            jpeg_quality,
+                        )
+
                     ground_truth_filename: Optional[str] = None
                     if labels_enabled and ground_truth_image is not None:
                         ground_truth_export = ground_truth_image
@@ -538,6 +637,8 @@ def main(config: DictConfig) -> None:
                     export_metadata["frames"].append({
                         "frame": frame_index,
                         "events": event_filename,
+                        "predictions": detection_filename,
+                        "prediction_objects": _serialize_detections(processed_detections),
                         "ground_truth": ground_truth_filename,
                         "ground_truth_annotated": frame_labels is not None,
                         "ground_truth_objects": ground_truth_objects,

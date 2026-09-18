@@ -6,6 +6,12 @@ defaults:
 # The checkpoint and experiment override must match the selected dataset/model.
 checkpoint: ???
 
+detections:
+  # Run the RVT detection head on every event-representation frame.
+  enabled: true
+  # null uses model.postprocess.confidence_threshold.
+  confidence_threshold: null
+
 visualization:
   # One of: train, val, test
   split: val

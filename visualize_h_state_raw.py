@@ -191,6 +191,7 @@ def main(config: DictConfig) -> None:
 
     stages = _validate_stages(config.visualization.stages, module.mdl.backbone.num_stages)
     reduction = str(config.visualization.channel_reduction)
+    event_color_mode = str(config.visualization.event_color_mode)
     tracker = StageScaleTracker(
         percentile=float(config.visualization.percentile),
         decay=float(config.visualization.scale_ema_decay),
@@ -256,6 +257,7 @@ def main(config: DictConfig) -> None:
         "channel_order": (
             f"polarity_0_bins_0_to_{bins - 1}_then_polarity_1_bins_0_to_{bins - 1}"
         ),
+        "event_color_mode": event_color_mode,
         "detection_confidence_threshold": confidence_threshold,
         "frames": [],
     }
@@ -284,7 +286,9 @@ def main(config: DictConfig) -> None:
                         nms_thre=float(config.model.postprocess.nms_threshold),
                     )[0]
 
-                event_image = _event_representation_to_bgr(frame.representation)
+                event_image = _event_representation_to_bgr(
+                    frame.representation, color_mode=event_color_mode
+                )
                 detection_image = _draw_detections(
                     event_image, processed_detections, str(config.dataset.name)
                 )

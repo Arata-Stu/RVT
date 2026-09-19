@@ -26,6 +26,9 @@ visualization:
   codec: mp4v
   # 1-based recurrent backbone stage numbers.
   stages: [1, 2, 3, 4]
+  # red_blue_white: positive=red, negative=blue, no event=white.
+  # grayscale restores the original white/black/gray rendering.
+  event_color_mode: red_blue_white
   # One of: mean_abs, rms, max_abs, mean
   channel_reduction: mean_abs
   # Robust per-stage scale tracking. A larger decay keeps colors more comparable

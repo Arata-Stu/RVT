@@ -276,6 +276,10 @@ Detection-head inference is enabled by default with `detections.enabled=true` an
 JSON records box coordinates and confidence values. Override `detections.confidence_threshold=0.1` to inspect more
 low-confidence predictions, or use `detections.enabled=false` when only hidden states are needed.
 
+Event images use `visualization.event_color_mode=red_blue_white` by default: positive-polarity events are red,
+negative-polarity events are blue, and pixels without events are white. Use
+`visualization.event_color_mode=grayscale` to restore the original white/black events on a gray background.
+
 ## JetPilot EVS RAW / ROS bag inference
 
 `visualize_h_state_raw.py` accepts event recordings produced by JetPilot and runs the complete RVT backbone and

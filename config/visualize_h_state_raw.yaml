@@ -46,6 +46,9 @@ visualization:
   fps: 20
   codec: mp4v
   stages: [1, 2, 3, 4]
+  # red_blue_white: positive=red, negative=blue, no event=white.
+  # grayscale restores the original white/black/gray rendering.
+  event_color_mode: red_blue_white
   channel_reduction: mean_abs
   percentile: 99.0
   scale_ema_decay: 0.95

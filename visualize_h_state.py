@@ -75,7 +75,9 @@ def _build_sequence(sequence_path: Path, config: DictConfig) -> SequenceForIter:
     )
 
 
-def _event_representation_to_bgr(event_repr: torch.Tensor) -> np.ndarray:
+def _event_representation_to_bgr(
+        event_repr: torch.Tensor,
+        color_mode: str = "red_blue_white") -> np.ndarray:
     array = event_repr.detach().float().cpu().numpy()
     channels, height, width = array.shape
     if channels <= 1 or channels % 2 != 0:
@@ -83,9 +85,20 @@ def _event_representation_to_bgr(event_repr: torch.Tensor) -> np.ndarray:
 
     half = channels // 2
     difference = array[half:].sum(axis=0) - array[:half].sum(axis=0)
-    image = np.full((height, width, 3), 127, dtype=np.uint8)
-    image[difference > 0] = (255, 255, 255)
-    image[difference < 0] = (0, 0, 0)
+    if color_mode == "red_blue_white":
+        # OpenCV uses BGR: positive polarity is red, negative polarity is blue.
+        image = np.full((height, width, 3), 255, dtype=np.uint8)
+        image[difference > 0] = (0, 0, 255)
+        image[difference < 0] = (255, 0, 0)
+    elif color_mode == "grayscale":
+        image = np.full((height, width, 3), 127, dtype=np.uint8)
+        image[difference > 0] = (255, 255, 255)
+        image[difference < 0] = (0, 0, 0)
+    else:
+        raise ValueError(
+            "visualization.event_color_mode must be red_blue_white or grayscale, "
+            f"got {color_mode!r}"
+        )
     return image
 
 
@@ -403,6 +416,7 @@ def main(config: DictConfig) -> None:
     number_of_stages = module.mdl.backbone.num_stages
     stages = _validate_stages(config.visualization.stages, number_of_stages)
     reduction = str(config.visualization.channel_reduction)
+    event_color_mode = str(config.visualization.event_color_mode)
     tracker = StageScaleTracker(
         percentile=float(config.visualization.percentile),
         decay=float(config.visualization.scale_ema_decay),
@@ -483,6 +497,7 @@ def main(config: DictConfig) -> None:
         "split": str(config.visualization.split),
         "frame_numbering": "zero-based",
         "channel_reduction": reduction,
+        "event_color_mode": event_color_mode,
         "percentile": float(config.visualization.percentile),
         "scale_ema_decay": float(config.visualization.scale_ema_decay),
         "ground_truth_labels_enabled": labels_enabled,
@@ -513,7 +528,9 @@ def main(config: DictConfig) -> None:
                         nms_thre=float(config.model.postprocess.nms_threshold),
                     )[0]
 
-                event_image = _event_representation_to_bgr(event_repr)
+                event_image = _event_representation_to_bgr(
+                    event_repr, color_mode=event_color_mode
+                )
                 detection_image: Optional[np.ndarray] = None
                 if detections_enabled:
                     detection_image = _draw_detections(
